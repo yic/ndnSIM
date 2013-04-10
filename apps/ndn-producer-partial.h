@@ -1,5 +1,5 @@
-#ifndef NDN_PRODUCER_EVEN_ODD_H
-#define NDN_PRODUCER_EVEN_ODD_H
+#ifndef NDN_PRODUCER_PARTIAL_H
+#define NDN_PRODUCER_PARTIAL_H
 
 #include "ndn-app.h"
 #include "ndn-producer.h"
@@ -11,21 +11,22 @@
 namespace ns3 {
 namespace ndn {
 
-class EvenOddProducer : public Producer
+class PartialProducer : public Producer
 {
 public: 
   static TypeId
   GetTypeId (void);
         
-  EvenOddProducer ();
+  PartialProducer ();
 
   void OnInterest (const Ptr<const Interest> &interest, Ptr<Packet> packet);
 
 private:
-  bool m_acceptEven;
+  uint32_t m_dividend;
+  uint32_t m_remainder;
 };
 
 } // namespace ndn
 } // namespace ns3
 
-#endif // NDN_PRODUCER_EVEN_ODD_H
+#endif // NDN_PRODUCER_PARTIAL_H
