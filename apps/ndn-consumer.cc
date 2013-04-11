@@ -177,11 +177,10 @@ Consumer::SendPacket ()
 
   uint32_t seq=std::numeric_limits<uint32_t>::max (); //invalid
 
-  while (m_retxSeqs.size ())
+  if (m_retxSeqs.size ())
     {
       seq = *m_retxSeqs.begin ();
       m_retxSeqs.erase (m_retxSeqs.begin ());
-      break;
     }
 
   if (seq == std::numeric_limits<uint32_t>::max ())

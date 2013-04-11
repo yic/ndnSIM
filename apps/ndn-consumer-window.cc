@@ -152,7 +152,8 @@ ConsumerWindow::ScheduleNextPacket ()
         }
 
       // NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);
-      m_inFlight++;
+      if (m_retxSeqs.size () || m_seq < m_seqMax)
+        m_inFlight++;
       m_sendEvent = Simulator::ScheduleNow (&Consumer::SendPacket, this);
     }
 }
