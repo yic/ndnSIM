@@ -61,6 +61,10 @@ ConsumerWindow::GetTypeId (void)
                    BooleanValue (true),
                    MakeBooleanAccessor (&ConsumerWindow::m_setInitialWindowOnTimeout),
                    MakeBooleanChecker ())
+    .AddAttribute ("MIMD", "Use MIMD or AIMD",
+                   BooleanValue (true),
+                   MakeBooleanAccessor (&ConsumerWindow::m_mimd),
+                   MakeBooleanChecker ())
 
     .AddTraceSource ("WindowTrace",
                      "Window that controls how many outstanding interests are allowed",
@@ -84,6 +88,7 @@ ConsumerWindow::SetWindow (uint32_t window)
 {
   m_initialWindow = window;
   m_window = m_initialWindow;
+  m_realWindow = m_window;
 }
 
 uint32_t
@@ -165,7 +170,13 @@ ConsumerWindow::OnContentObject (const Ptr<const ContentObject> &contentObject,
 {
   Consumer::OnContentObject (contentObject, payload);
 
-  m_window = m_window + 1;
+  if (m_mimd) { //MIMD
+    m_window = m_window + 1;
+  }
+  else {        //AIMD
+      m_realWindow = m_realWindow + 1.0 / static_cast<double>(m_window);
+      m_window = static_cast<uint32_t> (m_realWindow);
+  }
 
   if (m_inFlight > static_cast<uint32_t> (0)) m_inFlight--;
   NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);
@@ -184,6 +195,7 @@ ConsumerWindow::OnNack (const Ptr<const Interest> &interest, Ptr<Packet> payload
     {
       // m_window = 0.5 * m_window;//m_window - 1;
       m_window = std::max<uint32_t> (0, m_window - 1);
+      m_realWindow = m_window;
     }
 
   NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);
@@ -200,6 +212,7 @@ ConsumerWindow::OnTimeout (uint32_t sequenceNumber)
     {
       // m_window = std::max<uint32_t> (0, m_window - 1);
       m_window = m_initialWindow;
+      m_realWindow = m_window;
     }
 
   NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);

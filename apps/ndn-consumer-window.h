@@ -97,6 +97,9 @@ private:
 
   TracedValue<uint32_t> m_window;
   TracedValue<uint32_t> m_inFlight;
+
+  double m_realWindow;
+  bool m_mimd;
 };
 
 } // namespace ndn
