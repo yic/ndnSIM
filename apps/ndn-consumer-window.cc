@@ -172,10 +172,17 @@ ConsumerWindow::OnContentObject (const Ptr<const ContentObject> &contentObject,
 
   if (m_mimd) { //MIMD
     m_window = m_window + 1;
+    m_realWindow = m_window;
   }
   else {        //AIMD
+    if (m_window < m_ssThresh) {    //slow start
+      m_window = m_window + 1;
+      m_realWindow = m_window;
+    }
+    else {  //congestion avoidance
       m_realWindow = m_realWindow + 1.0 / static_cast<double>(m_window);
       m_window = static_cast<uint32_t> (m_realWindow);
+    }
   }
 
   if (m_inFlight > static_cast<uint32_t> (0)) m_inFlight--;
@@ -213,6 +220,7 @@ ConsumerWindow::OnTimeout (uint32_t sequenceNumber)
       // m_window = std::max<uint32_t> (0, m_window - 1);
       m_window = m_initialWindow;
       m_realWindow = m_window;
+      m_ssThresh = std::max<uint32_t> (2, m_inFlight / 2);
     }
 
   NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);

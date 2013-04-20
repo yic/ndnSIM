@@ -100,6 +100,7 @@ private:
 
   double m_realWindow;
   bool m_mimd;
+  uint32_t m_ssThresh;
 };
 
 } // namespace ndn
