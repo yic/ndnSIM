@@ -218,7 +218,7 @@ ConsumerWindow::OnTimeout (uint32_t sequenceNumber)
   if (m_setInitialWindowOnTimeout)
     {
       // m_window = std::max<uint32_t> (0, m_window - 1);
-      m_ssThresh = std::max<uint32_t> (2, m_window / 2);
+      m_ssThresh = std::max<uint32_t> (2, static_cast<unsigned>(m_window / 2));
       m_window = m_initialWindow;
       m_realWindow = m_window;
     }
