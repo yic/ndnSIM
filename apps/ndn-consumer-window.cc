@@ -218,9 +218,9 @@ ConsumerWindow::OnTimeout (uint32_t sequenceNumber)
   if (m_setInitialWindowOnTimeout)
     {
       // m_window = std::max<uint32_t> (0, m_window - 1);
+      m_ssThresh = std::max<uint32_t> (2, m_window / 2);
       m_window = m_initialWindow;
       m_realWindow = m_window;
-      m_ssThresh = std::max<uint32_t> (2, m_inFlight / 2);
     }
 
   NS_LOG_DEBUG ("Window: " << m_window << ", InFlight: " << m_inFlight);
