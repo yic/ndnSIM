@@ -23,6 +23,7 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace ns3 {
 namespace ndn {
@@ -55,7 +56,8 @@ CongestionControlStrategy::CongestionControlStrategy()
 void CongestionControlStrategy::OnInterest(Ptr<Face> face,
     Ptr<const InterestHeader> header,
     Ptr<const Packet> origPacket){
-  m_rtt->SentSeq(SequenceNumber32((atoi((header->GetName().GetLastComponent()).c_str()))), 1);
+  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
+  m_rtt->SentSeq(SequenceNumber32(seq), 1);
   BaseStrategy::OnInterest(face, header, origPacket);
 }
 
@@ -67,7 +69,8 @@ void CongestionControlStrategy::OnData(Ptr<Face> face,
   double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
   faceLimits->UpdateCurrentLimit(newLimit);
   BaseStrategy::OnData(face, header, payload, origPacket);
-  m_rtt->AckSeq(SequenceNumber32((atoi((header->GetName().GetLastComponent()).c_str()))));
+  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
+  m_rtt->AckSeq(SequenceNumber32(seq));
   faceLimits->SetLimits(faceLimits->GetMaxRate(), m_rtt->GetCurrentEstimate().ToDouble(Time::S)); 
 }
 
@@ -84,7 +87,8 @@ void CongestionControlStrategy::DidExhaustForwardingOptions(Ptr<Face> inFace,
     Ptr<const InterestHeader> header,
     Ptr<const Packet> packet,
     Ptr<pit::Entry> pitEntry){
-  m_rtt->SentSeq(SequenceNumber32((atoi((header->GetName().GetLastComponent()).c_str()))), 1);
+  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
+  m_rtt->SentSeq(SequenceNumber32(seq), 1);
   BaseStrategy::DidExhaustForwardingOptions(inFace, header, packet, pitEntry);
 }
 
