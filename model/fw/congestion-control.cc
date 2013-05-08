@@ -54,41 +54,46 @@ CongestionControlStrategy::CongestionControlStrategy()
 }
 
 void CongestionControlStrategy::OnInterest(Ptr<Face> face,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> origPacket){
+        Ptr<const InterestHeader> header,
+        Ptr<const Packet> origPacket){
   uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
   m_rtt->SentSeq(SequenceNumber32(seq), 1);
+
   BaseStrategy::OnInterest(face, header, origPacket);
 }
 
 void CongestionControlStrategy::OnData(Ptr<Face> face,
-    Ptr<const ContentObjectHeader> header,
-    Ptr<Packet> payload,
-    Ptr<const Packet> origPacket){
+        Ptr<const ContentObjectHeader> header,
+        Ptr<Packet> payload,
+        Ptr<const Packet> origPacket){
   Ptr<Limits> faceLimits = face->GetObject<Limits>();
   double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
   faceLimits->UpdateCurrentLimit(newLimit);
-  BaseStrategy::OnData(face, header, payload, origPacket);
+
   uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
   m_rtt->AckSeq(SequenceNumber32(seq));
   faceLimits->SetLimits(faceLimits->GetMaxRate(), m_rtt->GetCurrentEstimate().ToDouble(Time::S)); 
+
+  BaseStrategy::OnData(face, header, payload, origPacket);
 }
 
 void CongestionControlStrategy::OnNack(Ptr<Face> inFace,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> origPacket){
+        Ptr<const InterestHeader> header,
+        Ptr<const Packet> origPacket){
   Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
   double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() - 1.0);
   faceLimits->UpdateCurrentLimit(newLimit);
+
   BaseStrategy::OnNack(inFace, header, origPacket);
 }
 
 void CongestionControlStrategy::DidExhaustForwardingOptions(Ptr<Face> inFace,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> packet,
-    Ptr<pit::Entry> pitEntry){
+        Ptr<const InterestHeader> header,
+        Ptr<const Packet> packet,
+        Ptr<pit::Entry> pitEntry){
   uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
   m_rtt->SentSeq(SequenceNumber32(seq), 1);
+
   BaseStrategy::DidExhaustForwardingOptions(inFace, header, packet, pitEntry);
 }
 
