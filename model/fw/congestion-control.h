@@ -1,5 +1,5 @@
 //congestion-control.h
-        
+
 #ifndef CONGESTION_CONTROL_H
 #define CONGESTION_CONTROL_H
 
@@ -9,6 +9,7 @@
 #include "nacks.h"
 #include "per-out-face-limits.h"
 #include "best-route.h"
+#include "ns3/ndnSIM/utils/ndn-rtt-mean-deviation.h"
 
 namespace ns3 {
 namespace ndn {
@@ -26,22 +27,32 @@ public:
 
   CongestionControlStrategy();
 
+  virtual void OnInterest(Ptr<Face> face,
+    Ptr<const InterestHeader> header,
+    Ptr<const Packet> origPacket);
+
   virtual void OnData(Ptr<Face> face,
-          Ptr<const ContentObjectHeader> header,
-          Ptr<Packet> payload,
-          Ptr<const Packet> origPacket);
+    Ptr<const ContentObjectHeader> header,
+    Ptr<Packet> payload,
+    Ptr<const Packet> origPacket);
 
 protected:
   virtual void OnNack(Ptr<Face> inFace,
-          Ptr<const InterestHeader> header,
-          Ptr<const Packet> origPacket);
+    Ptr<const InterestHeader> header,
+    Ptr<const Packet> origPacket);
+
+  virtual void DidExhaustForwardingOptions(Ptr<Face> inFace,
+    Ptr<const InterestHeader> header,
+    Ptr<const Packet> packet,
+    Ptr<pit::Entry> pitEntry);
 
 protected:
-    static LogComponent g_log;
+  static LogComponent g_log;
+  Ptr<RttEstimator> m_rtt;
 };
 
 } // namespace fw
 } // namespace ndn
 } // namespace ns3
-                
+
 #endif // CONGESTION_CONTROL_H
