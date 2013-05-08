@@ -15,6 +15,8 @@
 #include <boost/ref.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
+#include <boost/lexical_cast.hpp>
+
 namespace ll = boost::lambda;
 
 NS_LOG_COMPONENT_DEFINE ("ndn.PartialProducer");
@@ -52,8 +54,8 @@ PartialProducer::PartialProducer ()
 void
 PartialProducer::OnInterest (const Ptr<const Interest> &interest, Ptr<Packet> origPacket)
 {
-
-  if (atoi((interest->GetName().GetLastComponent ()).c_str()) % m_dividend == m_remainder) {
+  uint32_t seq = boost::lexical_cast<uint32_t>(interest->GetName().GetLastComponent());
+  if (seq % m_dividend == m_remainder) {
     Producer::OnInterest (interest, origPacket);
   }
 }
