@@ -53,13 +53,19 @@ CongestionControlStrategy::CongestionControlStrategy()
   m_rtt = CreateObject<RttMeanDeviation>();
 }
 
-void CongestionControlStrategy::OnInterest(Ptr<Face> face,
-        Ptr<const InterestHeader> header,
-        Ptr<const Packet> origPacket){
-  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
-  m_rtt->SentSeq(SequenceNumber32(seq), 1);
 
-  BaseStrategy::OnInterest(face, header, origPacket);
+bool CongestionControlStrategy::DoPropagateInterest(Ptr<Face> inFace,
+        Ptr<const Interest> header,
+        Ptr<const Packet> origPacket,
+        Ptr<pit::Entry> pitEntry) {
+  bool propagated = BaseStrategy::DoPropagateInterest(inFace, header, origPacket, pitEntry);
+
+  if (propagated) {
+    uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
+    m_rtt->SentSeq(SequenceNumber32(seq), 1);
+  }
+
+  return propagated;
 }
 
 void CongestionControlStrategy::OnData(Ptr<Face> face,
@@ -85,16 +91,6 @@ void CongestionControlStrategy::OnNack(Ptr<Face> inFace,
   faceLimits->UpdateCurrentLimit(newLimit);
 
   BaseStrategy::OnNack(inFace, header, origPacket);
-}
-
-void CongestionControlStrategy::DidExhaustForwardingOptions(Ptr<Face> inFace,
-        Ptr<const InterestHeader> header,
-        Ptr<const Packet> packet,
-        Ptr<pit::Entry> pitEntry){
-  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
-  m_rtt->SentSeq(SequenceNumber32(seq), 1);
-
-  BaseStrategy::DidExhaustForwardingOptions(inFace, header, packet, pitEntry);
 }
 
 } // namespace fw

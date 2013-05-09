@@ -27,9 +27,10 @@ public:
 
   CongestionControlStrategy();
 
-  virtual void OnInterest(Ptr<Face> face,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> origPacket);
+  virtual bool DoPropagateInterest(Ptr<Face> inFace,
+    Ptr<const Interest> header,
+    Ptr<const Packet> origPacket,
+    Ptr<pit::Entry> pitEntry);
 
   virtual void OnData(Ptr<Face> face,
     Ptr<const ContentObjectHeader> header,
@@ -40,11 +41,6 @@ protected:
   virtual void OnNack(Ptr<Face> inFace,
     Ptr<const InterestHeader> header,
     Ptr<const Packet> origPacket);
-
-  virtual void DidExhaustForwardingOptions(Ptr<Face> inFace,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> packet,
-    Ptr<pit::Entry> pitEntry);
 
 protected:
   static LogComponent g_log;
