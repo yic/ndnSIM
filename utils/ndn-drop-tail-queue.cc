@@ -21,15 +21,17 @@
 #include "ns3/uinteger.h"
 #include "ndn-drop-tail-queue.h"
 
-NS_LOG_COMPONENT_DEFINE ("NdnDropTailQueue");
+NS_LOG_COMPONENT_DEFINE ("ndn.DropTailQueue");
 
 namespace ns3 {
+
+namespace ndn {
 
 NS_OBJECT_ENSURE_REGISTERED (NdnDropTailQueue);
 
 TypeId NdnDropTailQueue::GetTypeId (void) 
 {
-  static TypeId tid = TypeId ("ns3::NdnDropTailQueue")
+  static TypeId tid = TypeId ("ns3::ndn::DropTailQueue")
     .SetParent<Queue> ()
     .AddConstructor<NdnDropTailQueue> ()
     .AddAttribute ("Mode", 
@@ -149,6 +151,8 @@ NdnDropTailQueue::DoPeek (void) const
 
   return p;
 }
+
+} // namespace ndn
 
 } // namespace ns3
 

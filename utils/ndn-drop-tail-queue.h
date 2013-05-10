@@ -25,6 +25,8 @@
 
 namespace ns3 {
 
+namespace ndn {
+
 class TraceContainer;
 
 /**
@@ -70,6 +72,8 @@ private:
   uint32_t m_bytesInQueue;
   QueueMode m_mode;
 };
+
+} // namespace ndn
 
 } // namespace ns3
 
