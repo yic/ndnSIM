@@ -27,7 +27,12 @@ public:
 
   CongestionControlStrategy();
 
-  virtual bool DoPropagateInterest(Ptr<Face> inFace,
+  virtual void OnInterest(Ptr<Face> face,
+    Ptr<const InterestHeader> header,
+    Ptr<const Packet> origPacket);
+
+  virtual void DidSendOutInterest(Ptr<Face> inFace,
+    Ptr<Face> outFace,
     Ptr<const Interest> header,
     Ptr<const Packet> origPacket,
     Ptr<pit::Entry> pitEntry);

@@ -25,6 +25,10 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "ns3/ndn-net-device-face.h"
+#include "ns3/ndn-drop-tail-queue.h"
+#include "ns3/point-to-point-net-device.h"
+
 namespace ns3 {
 namespace ndn {
 namespace fw {
@@ -54,24 +58,41 @@ CongestionControlStrategy::CongestionControlStrategy()
 }
 
 
-bool CongestionControlStrategy::DoPropagateInterest(Ptr<Face> inFace,
-        Ptr<const Interest> header,
-        Ptr<const Packet> origPacket,
-        Ptr<pit::Entry> pitEntry) {
-  bool propagated = BaseStrategy::DoPropagateInterest(inFace, header, origPacket, pitEntry);
+void CongestionControlStrategy::OnInterest(Ptr<Face> face,
+        Ptr<const InterestHeader> header,
+        Ptr<const Packet> origPacket)
+{
+    Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(face);
+    if (netDeviceFace) {
+        Ptr<PointToPointNetDevice> p2pNetDevice = DynamicCast<PointToPointNetDevice>(netDeviceFace->GetNetDevice());
+        if (p2pNetDevice) {
+            Ptr<NdnDropTailQueue> queue = DynamicCast<NdnDropTailQueue>(p2pNetDevice->GetQueue());
+            if (queue) {
+                std::cout << queue->GetAverageQueueLength() << std::endl;
+            }
+        }
+    }
 
-  if (propagated) {
-    uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
-    m_rtt->SentSeq(SequenceNumber32(seq), 1);
-  }
+    BaseStrategy::OnInterest(face, header, origPacket);
+}
 
-  return propagated;
+void CongestionControlStrategy::DidSendOutInterest(Ptr<Face> inFace,
+    Ptr<Face> outFace,
+    Ptr<const Interest> header,
+    Ptr<const Packet> origPacket,
+    Ptr<pit::Entry> pitEntry)
+{
+  uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
+  m_rtt->SentSeq(SequenceNumber32(seq), 1);
+
+  BaseStrategy::DidSendOutInterest(inFace, outFace, header, origPacket, pitEntry);
 }
 
 void CongestionControlStrategy::OnData(Ptr<Face> face,
         Ptr<const ContentObjectHeader> header,
         Ptr<Packet> payload,
-        Ptr<const Packet> origPacket){
+        Ptr<const Packet> origPacket)
+{
   Ptr<Limits> faceLimits = face->GetObject<Limits>();
   double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
   faceLimits->UpdateCurrentLimit(newLimit);
@@ -85,7 +106,8 @@ void CongestionControlStrategy::OnData(Ptr<Face> face,
 
 void CongestionControlStrategy::OnNack(Ptr<Face> inFace,
         Ptr<const InterestHeader> header,
-        Ptr<const Packet> origPacket){
+        Ptr<const Packet> origPacket)
+{
   Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
   double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() - 1.0);
   faceLimits->UpdateCurrentLimit(newLimit);
