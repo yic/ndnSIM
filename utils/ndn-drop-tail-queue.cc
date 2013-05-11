@@ -16,9 +16,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/enum.h"
 #include "ns3/uinteger.h"
+#include "ns3/double.h"
+#include "ns3/assert.h"
 #include "ndn-drop-tail-queue.h"
 
 NS_LOG_COMPONENT_DEFINE ("ndn.DropTailQueue");
@@ -50,6 +53,21 @@ TypeId NdnDropTailQueue::GetTypeId (void)
                    UintegerValue (100 * 65535),
                    MakeUintegerAccessor (&NdnDropTailQueue::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("QW",
+                   "Queue weight related to the exponential weighted moving average (EWMA)",
+                   DoubleValue (0.002),
+                   MakeDoubleAccessor (&NdnDropTailQueue::m_qW),
+                   MakeDoubleChecker <double> ())
+    .AddAttribute ("LinkBandwidth",
+                   "The RED link bandwidth",
+                   DataRateValue (DataRate ("1.5Mbps")),
+                   MakeDataRateAccessor (&NdnDropTailQueue::m_linkBandwidth),
+                   MakeDataRateChecker ())
+    .AddAttribute ("MeanPktSize",
+                   "Average of packet size",
+                   UintegerValue (500),
+                   MakeUintegerAccessor (&NdnDropTailQueue::m_meanPktSize),
+                   MakeUintegerChecker<uint32_t> ())
   ;
 
   return tid;
@@ -58,7 +76,8 @@ TypeId NdnDropTailQueue::GetTypeId (void)
 NdnDropTailQueue::NdnDropTailQueue () :
   Queue (),
   m_packets (),
-  m_bytesInQueue (0)
+  m_bytesInQueue (0),
+  m_hasStarted (false)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -82,10 +101,51 @@ NdnDropTailQueue::GetMode (void)
   return m_mode;
 }
 
+void NdnDropTailQueue::InitializeParams(void)
+{
+  m_qAvg = 0.0;
+  m_idle = true;
+  m_idleTime = NanoSeconds (0);
+  m_ptc = m_linkBandwidth.GetBitRate () / (8.0 * m_meanPktSize);
+
+  if (m_qW == 0.0)
+  {
+      m_qW = 1.0 - std::exp (-1.0 / m_ptc);
+  }
+}
+
 bool 
 NdnDropTailQueue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
+
+  if (!m_hasStarted) {
+      InitializeParams();
+      m_hasStarted = true;
+  }
+
+  uint32_t nQueued = 0;
+
+  if (GetMode () == QUEUE_MODE_BYTES)
+  {
+      nQueued = m_bytesInQueue;
+  }
+  else if (GetMode () == QUEUE_MODE_PACKETS)
+  {
+      nQueued = m_packets.size ();
+  }
+
+  // simulate number of packets arrival during idle period
+  uint32_t m = 0;
+
+  if (m_idle)
+  {
+      Time now = Simulator::Now ();
+      m = uint32_t (m_ptc * (now - m_idleTime).GetSeconds ());
+      m_idle = false;
+  }
+
+  m_qAvg = Estimator (nQueued, m + 1, m_qAvg, m_qW);
 
   if (m_mode == QUEUE_MODE_PACKETS && (m_packets.size () >= m_maxPackets))
     {
@@ -118,9 +178,13 @@ NdnDropTailQueue::DoDequeue (void)
   if (m_packets.empty ())
     {
       NS_LOG_LOGIC ("Queue empty");
+      m_idle = true;
+      m_idleTime = Simulator::Now ();
+
       return 0;
     }
 
+  NS_ASSERT(!m_idle);
   Ptr<Packet> p = m_packets.front ();
   m_packets.pop ();
   m_bytesInQueue -= p->GetSize ();
@@ -150,6 +214,28 @@ NdnDropTailQueue::DoPeek (void) const
   NS_LOG_LOGIC ("Number bytes " << m_bytesInQueue);
 
   return p;
+}
+
+double NdnDropTailQueue::GetAverageQueueLength(void)
+{
+    return m_qAvg;
+}
+
+double NdnDropTailQueue::Estimator (uint32_t nQueued, uint32_t m, double qAvg, double qW)
+{
+    NS_LOG_FUNCTION (this << nQueued << m << qAvg << qW);
+
+    double newAve = qAvg;
+
+    while (--m >= 1)
+    {
+        newAve *= 1.0 - qW;
+    }
+
+    newAve *= 1.0 - qW;
+    newAve += qW * nQueued;
+
+    return newAve;
 }
 
 } // namespace ndn

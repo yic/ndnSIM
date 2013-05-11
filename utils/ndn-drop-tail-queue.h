@@ -22,6 +22,8 @@
 #include <queue>
 #include "ns3/packet.h"
 #include "ns3/queue.h"
+#include "ns3/nstime.h"
+#include "ns3/data-rate.h"
 
 namespace ns3 {
 
@@ -61,6 +63,8 @@ public:
    */
   NdnDropTailQueue::QueueMode GetMode (void);
 
+  double GetAverageQueueLength (void);
+
 private:
   virtual bool DoEnqueue (Ptr<Packet> p);
   virtual Ptr<Packet> DoDequeue (void);
@@ -71,6 +75,20 @@ private:
   uint32_t m_maxBytes;
   uint32_t m_bytesInQueue;
   QueueMode m_mode;
+
+private:
+  bool m_hasStarted;
+  double m_qAvg;
+  bool m_idle;
+  Time m_idleTime;
+  double m_ptc;
+
+  double m_qW;
+  uint32_t m_meanPktSize;
+  DataRate m_linkBandwidth;
+
+  void InitializeParams(void);
+  double Estimator (uint32_t nQueued, uint32_t m, double qAvg, double qW);
 };
 
 } // namespace ndn
