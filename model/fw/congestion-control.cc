@@ -51,12 +51,12 @@ TypeId CongestionControlStrategy::GetTypeId(void)
         .AddConstructor<CongestionControlStrategy>()
         .AddAttribute ("MinTh",
                 "Minimum average length threshold in packets/bytes",
-                DoubleValue(5),
+                DoubleValue(5.0),
                 MakeDoubleAccessor(&CongestionControlStrategy::m_minTh),
                 MakeDoubleChecker<double>())
         .AddAttribute ("MaxTh",
                 "Maximum average length threshold in packets/bytes",
-                DoubleValue(15),
+                DoubleValue(15.0),
                 MakeDoubleAccessor(&CongestionControlStrategy::m_maxTh),
                 MakeDoubleChecker<double>())
         .AddAttribute ("MaxP",
@@ -127,8 +127,9 @@ void CongestionControlStrategy::OnInterest(Ptr<Face> face,
         Ptr<const Packet> origPacket)
 {
     if (EarlyNack(face)) {
-        if (m_nacksEnabled)
-        {
+        if (m_nacksEnabled) {
+            NS_LOG_DEBUG("Sending early NACK");
+
             Ptr<Packet> packet = Create<Packet>();
             Ptr<Interest> nackHeader = Create<Interest>(*header);
             nackHeader->SetNack(Interest::NACK_CONGESTION);
