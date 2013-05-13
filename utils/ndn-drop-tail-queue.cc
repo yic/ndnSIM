@@ -22,6 +22,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
 #include "ns3/assert.h"
+#include "ns3/abort.h"
 #include "ndn-drop-tail-queue.h"
 
 NS_LOG_COMPONENT_DEFINE ("ndn.DropTailQueue");
@@ -219,6 +220,22 @@ NdnDropTailQueue::DoPeek (void) const
 double NdnDropTailQueue::GetAverageQueueLength(void)
 {
     return m_qAvg;
+}
+
+uint32_t NdnDropTailQueue::GetQueueLength(void)
+{
+    if (GetMode () == QUEUE_MODE_BYTES)
+    {
+        return m_bytesInQueue;
+    }
+    else if (GetMode () == QUEUE_MODE_PACKETS)
+    {
+        return m_packets.size ();
+    }
+    else
+    {
+        NS_ABORT_MSG ("Unknown mode.");
+    }
 }
 
 double NdnDropTailQueue::Estimator (uint32_t nQueued, uint32_t m, double qAvg, double qW)

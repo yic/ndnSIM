@@ -64,6 +64,7 @@ public:
   NdnDropTailQueue::QueueMode GetMode (void);
 
   double GetAverageQueueLength (void);
+  uint32_t GetQueueLength (void);
 
 private:
   virtual bool DoEnqueue (Ptr<Packet> p);

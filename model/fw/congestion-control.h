@@ -6,6 +6,7 @@
 #include "ns3/log.h"
 #include "ns3/ndn-forwarding-strategy.h"
 #include "ns3/ndn-l3-protocol.h"
+#include "ns3/random-variable-stream.h"
 #include "nacks.h"
 #include "per-out-face-limits.h"
 #include "best-route.h"
@@ -50,6 +51,16 @@ protected:
 protected:
   static LogComponent g_log;
   Ptr<RttEstimator> m_rtt;
+
+private:
+  double m_maxP;
+  double m_minTh;
+  double m_maxTh;
+  uint32_t m_count;
+  bool m_wasBeyondMinTh;
+  Ptr<UniformRandomVariable> m_random;
+
+  bool EarlyNack(Ptr<Face> face);
 };
 
 } // namespace fw
