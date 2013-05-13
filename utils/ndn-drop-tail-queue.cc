@@ -110,7 +110,7 @@ void NdnDropTailQueue::InitializeParams(void)
 
   if (m_qW == 0.0)
   {
-      m_qW = 1.0 - std::exp (-1.0 / m_ptc);
+      m_qW = 1.0 - std::exp (-10.0 / m_ptc);
   }
 }
 
