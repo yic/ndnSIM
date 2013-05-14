@@ -49,21 +49,29 @@ TypeId CongestionControlStrategy::GetTypeId(void)
         .SetGroupName("Ndn")
         .SetParent<BaseStrategy>()
         .AddConstructor<CongestionControlStrategy>()
-        .AddAttribute ("MinTh",
+        .AddAttribute("MinTh",
                 "Minimum average length threshold in packets/bytes",
                 DoubleValue(5.0),
                 MakeDoubleAccessor(&CongestionControlStrategy::m_minTh),
                 MakeDoubleChecker<double>())
-        .AddAttribute ("MaxTh",
+        .AddAttribute("MaxTh",
                 "Maximum average length threshold in packets/bytes",
                 DoubleValue(15.0),
                 MakeDoubleAccessor(&CongestionControlStrategy::m_maxTh),
                 MakeDoubleChecker<double>())
-        .AddAttribute ("MaxP",
+        .AddAttribute("MaxP",
                 "The maximum probability of dropping a packet",
                 DoubleValue(0.02),
                 MakeDoubleAccessor(&CongestionControlStrategy::m_maxP),
-                MakeDoubleChecker<double> ())
+                MakeDoubleChecker<double>())
+        .AddAttribute("EnableREN", "Enable random early NACK",
+                BooleanValue(true),
+                MakeBooleanAccessor(&CongestionControlStrategy::m_earlyNackEnabled),
+                MakeBooleanChecker())
+        .AddAttribute("EnableDynamicLimit", "Enable dynamic Interest limit",
+                BooleanValue(true),
+                MakeBooleanAccessor(&CongestionControlStrategy::m_dynamicLimitEnabled),
+                MakeBooleanChecker())
         ;
     return tid;
 }
@@ -125,7 +133,7 @@ void CongestionControlStrategy::OnInterest(Ptr<Face> face,
         Ptr<const InterestHeader> header,
         Ptr<const Packet> origPacket)
 {
-    if (EarlyNack(face)) {
+    if (m_earlyNackEnabled && EarlyNack(face)) {
         if (m_nacksEnabled) {
             NS_LOG_DEBUG("Sending early NACK");
 
@@ -158,7 +166,11 @@ void CongestionControlStrategy::WillSatisfyPendingInterest (Ptr<Face> inFace,
     Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(inFace);
     if (netDeviceFace) {
         Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
-        faceLimits->SetLimits(faceLimits->GetMaxRate(), pitEntry->GetFibEntry()->GetFaceRtt(inFace).ToDouble(Time::S));
+
+        if (m_dynamicLimitEnabled) {
+            faceLimits->SetLimits(faceLimits->GetMaxRate(), pitEntry->GetFibEntry()->GetFaceRtt(inFace).ToDouble(Time::S));
+        }
+
         double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
         faceLimits->UpdateCurrentLimit(newLimit);
     }

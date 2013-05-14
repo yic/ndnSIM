@@ -50,6 +50,8 @@ private:
   double m_maxTh;
   uint32_t m_count;
   bool m_wasBeyondMinTh;
+  bool m_earlyNackEnabled;
+  bool m_dynamicLimitEnabled;
   Ptr<UniformRandomVariable> m_ranvar;
 
   bool EarlyNack(Ptr<Face> face);
