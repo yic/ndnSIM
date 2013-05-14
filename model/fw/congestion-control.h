@@ -10,7 +10,6 @@
 #include "nacks.h"
 #include "per-out-face-limits.h"
 #include "best-route.h"
-#include "ns3/ndnSIM/utils/ndn-rtt-mean-deviation.h"
 
 namespace ns3 {
 namespace ndn {
@@ -32,25 +31,18 @@ public:
     Ptr<const InterestHeader> header,
     Ptr<const Packet> origPacket);
 
-  virtual void DidSendOutInterest(Ptr<Face> inFace,
-    Ptr<Face> outFace,
+protected:
+  virtual void DidReceiveValidNack(Ptr<Face> inFace,
+    uint32_t nackCode,
     Ptr<const Interest> header,
     Ptr<const Packet> origPacket,
     Ptr<pit::Entry> pitEntry);
 
-  virtual void OnData(Ptr<Face> face,
-    Ptr<const ContentObjectHeader> header,
-    Ptr<Packet> payload,
-    Ptr<const Packet> origPacket);
-
-protected:
-  virtual void OnNack(Ptr<Face> inFace,
-    Ptr<const InterestHeader> header,
-    Ptr<const Packet> origPacket);
+  virtual void WillSatisfyPendingInterest(Ptr<Face> inFace,
+    Ptr<pit::Entry> pitEntry);
 
 protected:
   static LogComponent g_log;
-  Ptr<RttEstimator> m_rtt;
 
 private:
   double m_maxP;
@@ -58,7 +50,7 @@ private:
   double m_maxTh;
   uint32_t m_count;
   bool m_wasBeyondMinTh;
-  Ptr<UniformRandomVariable> m_random;
+  Ptr<UniformRandomVariable> m_ranvar;
 
   bool EarlyNack(Ptr<Face> face);
 };

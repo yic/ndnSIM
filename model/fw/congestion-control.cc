@@ -72,8 +72,7 @@ CongestionControlStrategy::CongestionControlStrategy()
     : m_count(0)
     , m_wasBeyondMinTh(false)
 {
-    m_rtt = CreateObject<RttMeanDeviation>();
-    m_random = CreateObject<UniformRandomVariable>();
+    m_ranvar = CreateObject<UniformRandomVariable>();
 }
 
 bool CongestionControlStrategy::EarlyNack(Ptr<Face> face)
@@ -105,7 +104,7 @@ bool CongestionControlStrategy::EarlyNack(Ptr<Face> face)
                         else
                             p = 1.0;
 
-                        double u = m_random->GetValue();
+                        double u = m_ranvar->GetValue();
                         if (u < p) {
                             m_count = 0;
                             return true;
@@ -151,53 +150,34 @@ void CongestionControlStrategy::OnInterest(Ptr<Face> face,
     }
 }
 
-void CongestionControlStrategy::DidSendOutInterest(Ptr<Face> inFace,
-    Ptr<Face> outFace,
+void CongestionControlStrategy::WillSatisfyPendingInterest (Ptr<Face> inFace,
+    Ptr<pit::Entry> pitEntry)
+{
+    BaseStrategy::WillSatisfyPendingInterest(inFace, pitEntry);
+
+    Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(inFace);
+    if (netDeviceFace) {
+        Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
+        faceLimits->SetLimits(faceLimits->GetMaxRate(), pitEntry->GetFibEntry()->GetFaceRtt(inFace).ToDouble(Time::S));
+        double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
+        faceLimits->UpdateCurrentLimit(newLimit);
+    }
+}
+
+void CongestionControlStrategy::DidReceiveValidNack(Ptr<Face> inFace,
+    uint32_t nackCode,
     Ptr<const Interest> header,
     Ptr<const Packet> origPacket,
     Ptr<pit::Entry> pitEntry)
 {
-    Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(outFace);
-    if (netDeviceFace) {
-        uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
-        m_rtt->SentSeq(SequenceNumber32(seq), 1);
-    }
+    BaseStrategy::DidReceiveValidNack(inFace, nackCode, header, origPacket, pitEntry);
 
-    BaseStrategy::DidSendOutInterest(inFace, outFace, header, origPacket, pitEntry);
-}
-
-void CongestionControlStrategy::OnData(Ptr<Face> face,
-        Ptr<const ContentObjectHeader> header,
-        Ptr<Packet> payload,
-        Ptr<const Packet> origPacket)
-{
-    Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(face);
-    if (netDeviceFace) {
-        Ptr<Limits> faceLimits = face->GetObject<Limits>();
-
-        uint32_t seq = boost::lexical_cast<uint32_t>(header->GetName().GetLastComponent());
-        m_rtt->AckSeq(SequenceNumber32(seq));
-        faceLimits->SetLimits(faceLimits->GetMaxRate(), m_rtt->GetCurrentEstimate().ToDouble(Time::S));
-
-        double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);
-        faceLimits->UpdateCurrentLimit(newLimit);
-    }
-
-  BaseStrategy::OnData(face, header, payload, origPacket);
-}
-
-void CongestionControlStrategy::OnNack(Ptr<Face> inFace,
-        Ptr<const InterestHeader> header,
-        Ptr<const Packet> origPacket)
-{
     Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(inFace);
     if (netDeviceFace) {
         Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
         double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() - 1.0);
         faceLimits->UpdateCurrentLimit(newLimit);
     }
-
-    BaseStrategy::OnNack(inFace, header, origPacket);
 }
 
 } // namespace fw

@@ -88,6 +88,16 @@ Entry::UpdateFaceRtt (Ptr<Face> face, const Time &sample)
   m_faces.get<i_nth> ().rearrange (m_faces.get<i_metric> ().begin ());
 }
 
+Time
+Entry::GetFaceRtt (Ptr<Face> face)
+{
+  FaceMetricByFace::type::iterator record = m_faces.get<i_face> ().find (face);
+  NS_ASSERT_MSG (record != m_faces.get<i_face> ().end (),
+                 "GetFaceRtt can be performed only on existing faces of CcxnFibEntry");
+
+  return record->GetRtt ();
+}
+
 void
 Entry::UpdateStatus (Ptr<Face> face, FaceMetric::Status status)
 {

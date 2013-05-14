@@ -101,6 +101,8 @@ public:
   void
   UpdateRtt (const Time &rttSample);
 
+  Time GetRtt () const { return m_sRtt; }
+
   /**
    * @brief Get current status of FIB entry
    */
@@ -287,6 +289,8 @@ public:
    */
   void
   UpdateFaceRtt (Ptr<Face> face, const Time &sample);
+
+  Time GetFaceRtt (Ptr<Face> face);
 
   /**
    * \brief Get prefix for the FIB entry
