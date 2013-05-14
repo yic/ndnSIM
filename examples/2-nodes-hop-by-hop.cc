@@ -47,8 +47,8 @@ int main (int argc, char *argv[])
     ndn::StackHelper ndnHelper;
     ndnHelper.SetDefaultRoutes (true);
     ndnHelper.SetContentStore ("ns3::ndn::cs::Lru", "MaxSize", "1");
-    ndnHelper.EnableLimits (true, Seconds (rtt_estimate), 40, 1100);
-    ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute::PerOutFaceLimits::CongestionControlStrategy",
+    ndnHelper.EnableLimits (true, Seconds (rtt_estimate), 40, 1024);
+    ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute::PerOutFaceLimits::CongestionControl",
             "Limit", "ns3::ndn::Limits::Window",
             "EnableNACKs", "true",
             "MaxP", "0.5");
