@@ -9,23 +9,21 @@
 #include "ns3/random-variable-stream.h"
 #include "nacks.h"
 #include "per-out-face-limits.h"
-#include "best-route.h"
 
 namespace ns3 {
 namespace ndn {
 namespace fw {
 
-typedef PerOutFaceLimits<BestRoute> BaseStrategy;
-
-class CongestionControlStrategy:
-    public BaseStrategy
+template<class Parent>
+class CongestionControl:
+    public Parent
 {
 public:
   static TypeId GetTypeId();
 
   static std::string GetLogName();
 
-  CongestionControlStrategy();
+  CongestionControl();
 
   virtual void OnInterest(Ptr<Face> face,
     Ptr<const InterestHeader> header,

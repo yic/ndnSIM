@@ -1,4 +1,7 @@
 //congestion-control.cc
+#include "best-route.h"
+#include "flooding.h"
+#include "smart-flooding.h"
 #include "congestion-control.h"
 #include "ns3/ndn-fib.h"
 #include "ns3/ndn-fib-entry.h"
@@ -34,61 +37,79 @@ namespace ns3 {
 namespace ndn {
 namespace fw {
 
-NS_OBJECT_ENSURE_REGISTERED(CongestionControlStrategy);
+extern template class PerOutFaceLimits<BestRoute>;
+template class CongestionControl< PerOutFaceLimits<BestRoute> >;
+typedef CongestionControl< PerOutFaceLimits<BestRoute> > CongestionControlPerOutFaceLimitsBestRoute;
+NS_OBJECT_ENSURE_REGISTERED(CongestionControlPerOutFaceLimitsBestRoute);
 
-LogComponent CongestionControlStrategy::g_log = LogComponent(CongestionControlStrategy::GetLogName().c_str());
+extern template class PerOutFaceLimits<Flooding>;
+template class CongestionControl< PerOutFaceLimits<Flooding> >;
+typedef CongestionControl< PerOutFaceLimits<Flooding> > CongestionControlPerOutFaceLimitsFlooding;
+NS_OBJECT_ENSURE_REGISTERED(CongestionControlPerOutFaceLimitsFlooding);
+
+extern template class PerOutFaceLimits<SmartFlooding>;
+template class CongestionControl< PerOutFaceLimits<SmartFlooding> >;
+typedef CongestionControl< PerOutFaceLimits<SmartFlooding> > CongestionControlPerOutFaceLimitsSmartFlooding;
+NS_OBJECT_ENSURE_REGISTERED(CongestionControlPerOutFaceLimitsSmartFlooding);
+
+template<class Parent>
+LogComponent CongestionControl<Parent>::g_log = LogComponent(CongestionControl<Parent>::GetLogName().c_str());
     
-std::string CongestionControlStrategy::GetLogName()
+template<class Parent>
+std::string CongestionControl<Parent>::GetLogName()
 {
-    return BaseStrategy::GetLogName()+".CongestionControlStrategy";
+    return Parent::GetLogName()+".CongestionControl";
 }
     
-TypeId CongestionControlStrategy::GetTypeId(void)
+template<class Parent>
+TypeId CongestionControl<Parent>::GetTypeId(void)
 {
-    static TypeId tid = TypeId("ns3::ndn::fw::BestRoute::PerOutFaceLimits::CongestionControlStrategy")
+    static TypeId tid = TypeId((Parent::GetTypeId().GetName()+"::CongestionControl").c_str())
         .SetGroupName("Ndn")
-        .SetParent<BaseStrategy>()
-        .AddConstructor<CongestionControlStrategy>()
+        .template SetParent<Parent>()
+        .template AddConstructor<CongestionControl>()
         .AddAttribute("MinTh",
                 "Minimum average length threshold in packets/bytes",
                 DoubleValue(5.0),
-                MakeDoubleAccessor(&CongestionControlStrategy::m_minTh),
+                MakeDoubleAccessor(&CongestionControl<Parent>::m_minTh),
                 MakeDoubleChecker<double>())
         .AddAttribute("MaxTh",
                 "Maximum average length threshold in packets/bytes",
                 DoubleValue(15.0),
-                MakeDoubleAccessor(&CongestionControlStrategy::m_maxTh),
+                MakeDoubleAccessor(&CongestionControl<Parent>::m_maxTh),
                 MakeDoubleChecker<double>())
         .AddAttribute("MaxP",
                 "The maximum probability of dropping a packet",
                 DoubleValue(0.02),
-                MakeDoubleAccessor(&CongestionControlStrategy::m_maxP),
+                MakeDoubleAccessor(&CongestionControl<Parent>::m_maxP),
                 MakeDoubleChecker<double>())
         .AddAttribute("EnableREN", "Enable random early NACK",
                 BooleanValue(true),
-                MakeBooleanAccessor(&CongestionControlStrategy::m_earlyNackEnabled),
+                MakeBooleanAccessor(&CongestionControl<Parent>::m_earlyNackEnabled),
                 MakeBooleanChecker())
         .AddAttribute("EnableDynamicLimit", "Enable dynamic Interest limit",
                 BooleanValue(true),
-                MakeBooleanAccessor(&CongestionControlStrategy::m_dynamicLimitEnabled),
+                MakeBooleanAccessor(&CongestionControl<Parent>::m_dynamicLimitEnabled),
                 MakeBooleanChecker())
         .AddAttribute("RttMultiplier",
                 "RTT multiplier in calculating dynamic Interest limit",
                 DoubleValue(1.0),
-                MakeDoubleAccessor(&CongestionControlStrategy::m_rttMultiplier),
+                MakeDoubleAccessor(&CongestionControl<Parent>::m_rttMultiplier),
                 MakeDoubleChecker<double>())
         ;
     return tid;
 }
 
-CongestionControlStrategy::CongestionControlStrategy()
+template<class Parent>
+CongestionControl<Parent>::CongestionControl()
     : m_count(0)
     , m_wasBeyondMinTh(false)
 {
     m_ranvar = CreateObject<UniformRandomVariable>();
 }
 
-bool CongestionControlStrategy::EarlyNack(Ptr<Face> face)
+template<class Parent>
+bool CongestionControl<Parent>::EarlyNack(Ptr<Face> face)
 {
     Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(face);
     if (netDeviceFace) {
@@ -134,12 +155,13 @@ bool CongestionControlStrategy::EarlyNack(Ptr<Face> face)
     return false;
 }
 
-void CongestionControlStrategy::OnInterest(Ptr<Face> face,
+template<class Parent>
+void CongestionControl<Parent>::OnInterest(Ptr<Face> face,
         Ptr<const InterestHeader> header,
         Ptr<const Packet> origPacket)
 {
     if (m_earlyNackEnabled && EarlyNack(face)) {
-        if (m_nacksEnabled) {
+        if (CongestionControl<Parent>::m_nacksEnabled) {
             NS_LOG_DEBUG("Sending early NACK");
 
             Ptr<Packet> packet = Create<Packet>();
@@ -155,18 +177,19 @@ void CongestionControlStrategy::OnInterest(Ptr<Face> face,
                 NS_LOG_DEBUG("No FwHopCountTag tag associated with original Interest");
             }
 
-            face->Send (packet->Copy ());
+            face->Send(packet->Copy());
         }
     }
     else {
-        BaseStrategy::OnInterest(face, header, origPacket);
+        Parent::OnInterest(face, header, origPacket);
     }
 }
 
-void CongestionControlStrategy::WillSatisfyPendingInterest (Ptr<Face> inFace,
+template<class Parent>
+void CongestionControl<Parent>::WillSatisfyPendingInterest(Ptr<Face> inFace,
     Ptr<pit::Entry> pitEntry)
 {
-    BaseStrategy::WillSatisfyPendingInterest(inFace, pitEntry);
+    Parent::WillSatisfyPendingInterest(inFace, pitEntry);
 
     Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(inFace);
     if (netDeviceFace) {
@@ -181,13 +204,14 @@ void CongestionControlStrategy::WillSatisfyPendingInterest (Ptr<Face> inFace,
     }
 }
 
-void CongestionControlStrategy::DidReceiveValidNack(Ptr<Face> inFace,
+template<class Parent>
+void CongestionControl<Parent>::DidReceiveValidNack(Ptr<Face> inFace,
     uint32_t nackCode,
     Ptr<const Interest> header,
     Ptr<const Packet> origPacket,
     Ptr<pit::Entry> pitEntry)
 {
-    BaseStrategy::DidReceiveValidNack(inFace, nackCode, header, origPacket, pitEntry);
+    Parent::DidReceiveValidNack(inFace, nackCode, header, origPacket, pitEntry);
 
     Ptr<NetDeviceFace> netDeviceFace = DynamicCast<NetDeviceFace>(inFace);
     if (netDeviceFace) {
