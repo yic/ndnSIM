@@ -72,6 +72,11 @@ TypeId CongestionControlStrategy::GetTypeId(void)
                 BooleanValue(true),
                 MakeBooleanAccessor(&CongestionControlStrategy::m_dynamicLimitEnabled),
                 MakeBooleanChecker())
+        .AddAttribute("RttMultiplier",
+                "RTT multiplier in calculating dynamic Interest limit",
+                DoubleValue(1.0),
+                MakeDoubleAccessor(&CongestionControlStrategy::m_rttMultiplier),
+                MakeDoubleChecker<double>())
         ;
     return tid;
 }
@@ -168,7 +173,7 @@ void CongestionControlStrategy::WillSatisfyPendingInterest (Ptr<Face> inFace,
         Ptr<Limits> faceLimits = inFace->GetObject<Limits>();
 
         if (m_dynamicLimitEnabled) {
-            faceLimits->SetLimits(faceLimits->GetMaxRate(), pitEntry->GetFibEntry()->GetFaceRtt(inFace).ToDouble(Time::S));
+            faceLimits->SetLimits(faceLimits->GetMaxRate(), m_rttMultiplier * pitEntry->GetFibEntry()->GetFaceRtt(inFace).ToDouble(Time::S));
         }
 
         double newLimit = std::max(0.0, faceLimits->GetCurrentLimit() + 1.0);

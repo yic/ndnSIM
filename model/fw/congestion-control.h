@@ -52,6 +52,7 @@ private:
   bool m_wasBeyondMinTh;
   bool m_earlyNackEnabled;
   bool m_dynamicLimitEnabled;
+  double m_rttMultiplier;
   Ptr<UniformRandomVariable> m_ranvar;
 
   bool EarlyNack(Ptr<Face> face);
