@@ -20,10 +20,12 @@ int main (int argc, char *argv[])
 {
     double freq = 200.0;
     double rtt_estimate = 0.13;
+    double multiplier = 1.0;
 
     CommandLine cmd;
     cmd.AddValue("Frequency", "CBR sending frequency", freq);
     cmd.AddValue("RttEstimate", "Rtt Estimate", rtt_estimate);
+    cmd.AddValue("Multiplier", "Multiplier", multiplier);
     cmd.Parse(argc, argv);
 
     Config::SetDefault("ns3::ndn::DropTailQueue::MaxPackets", StringValue ("20"));
@@ -44,13 +46,17 @@ int main (int argc, char *argv[])
     p2p.SetChannelAttribute ("Delay", StringValue ("50ms"));
     p2p.Install (nodes.Get (0), nodes.Get (1));
 
+    std::stringstream ss;
+    ss << multiplier;
+
     ndn::StackHelper ndnHelper;
     ndnHelper.SetDefaultRoutes (true);
     ndnHelper.SetContentStore ("ns3::ndn::cs::Lru", "MaxSize", "1");
     ndnHelper.EnableLimits (true, Seconds (rtt_estimate), 40, 1024);
     ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute::PerOutFaceLimits::CongestionControl",
-            "Limit", "ns3::ndn::Limits::Window",
             "EnableNACKs", "true",
+            "RttMultiplier", ss.str(),
+//            "EnableREN", "false",
             "MaxP", "0.5");
 
     ndnHelper.InstallAll ();  
@@ -67,9 +73,8 @@ int main (int argc, char *argv[])
     producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
     producerHelper.Install (nodes.Get (1));
 
-
-    std::stringstream ss;
-    ss << "trace/2-nodes-hop-by-hop-" << freq << "-" << rtt_estimate << ".tr";
+    ss.str("");
+    ss << "trace/2-nodes-hop-by-hop-" << freq << "-" << rtt_estimate << "-" << multiplier << ".tr";
     AsciiTraceHelper ascii;
     p2p.EnableAsciiAll (ascii.CreateFileStream (ss.str()));
     p2p.EnablePcapAll (ss.str(), false);
